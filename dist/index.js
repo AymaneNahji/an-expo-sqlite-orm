@@ -59,6 +59,7 @@ class SQLiteManager {
         this.filter.bind(this);
         this.search.bind(this);
         this.pagination.bind(this);
+        this.get.bind(this);
         this.first.bind(this);
         this.last.bind(this);
         this.getLastQuery.bind(this);

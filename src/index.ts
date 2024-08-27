@@ -82,6 +82,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
     this.filter.bind(this);
     this.search.bind(this);
     this.pagination.bind(this);
+    this.get.bind(this);
     this.first.bind(this);
     this.last.bind(this);
     this.getLastQuery.bind(this);
@@ -266,7 +267,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
     //   // handle code
     // }
     this.lastMethod="get"
-    return this.filter({id} as any).first(false)
+    return this.filter({id} as any).first(false) as ReturnType<this['first']>
   }
 
 

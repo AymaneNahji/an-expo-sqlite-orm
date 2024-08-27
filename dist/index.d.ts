@@ -35,10 +35,7 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
             results: InstanceWithOps<S>[];
         }>;
     };
-    get: (id: number) => {
-        run: () => Promise<any>;
-        query: () => string;
-    };
+    get: (id: number) => ReturnType<this["first"]>;
     filter: (params?: FilterParams<InstanceWithId<S["fields"]>>) => FilterReturnType<S>;
     first(nullable?: boolean): {
         run: () => Promise<InstanceWithOps<S> | null>;
@@ -57,7 +54,7 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
         query: () => string;
     };
     create(data: S['fields']): {
-        run: () => Promise<any>;
+        run: () => Promise<InstanceWithOps<S> | null>;
         query: () => string;
     };
     private getLastQuery;
