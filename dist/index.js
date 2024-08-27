@@ -61,6 +61,7 @@ class SQLiteManager {
         this.pagination.bind(this);
         this.first.bind(this);
         this.last.bind(this);
+        this.getLastQuery.bind(this);
         this.queries.bind(this);
     }
     clearQuery() {
@@ -76,15 +77,13 @@ class SQLiteManager {
         CREATE: (columns, values) => `INSERT INTO ${this.model.tableName} (${columns.join(', ')}) VALUES ( ${values.join(', ')} )`,
     });
     query = '';
+    lastMethod = '';
     all() {
+        this.lastMethod = "all";
         if (!this.query)
             this.setQuery(this.queries().ALL);
         return ({
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
             filter: this.filter.bind(this),
             search: this.search.bind(this),
             pagination: this.pagination.bind(this),
@@ -96,6 +95,10 @@ class SQLiteManager {
         });
     }
     search = (searchText = '') => {
+        if (this.lastMethod === "pagination") {
+            // handle code
+        }
+        this.lastMethod = "search";
         let searchSqlText = '';
         if (this.query) {
             if (this.query.includes('WHERE')) {
@@ -120,11 +123,7 @@ class SQLiteManager {
         if (searchSqlText)
             this.setQuery(`${this.queries().ALL} ${searchSqlText}`);
         return ({
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
             filter: this.filter.bind(this),
             search: this.search.bind(this),
             pagination: this.pagination.bind(this),
@@ -142,6 +141,10 @@ class SQLiteManager {
         if (pageSize < 0) {
             throw new Error('pageSize must be greater than 0');
         }
+        // if(this.lastMethod==="pagination"){
+        //   // handle code
+        // }
+        this.lastMethod = "pagination";
         let nextPageQuery = this.query;
         if (this.query) {
             this.setQuery(`${this.query} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`);
@@ -155,15 +158,9 @@ class SQLiteManager {
             return this.getFinalSingleResult(() => db.getAllAsync(nextPageQuery), false);
         };
         return ({
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
             first: this.first.bind(this),
             last: this.last.bind(this),
-            delete: this.delete.bind(this),
-            update: this.update.bind(this),
             run: () => new Promise((resolve, reject) => {
                 this.getFinalListResult(() => db.getAllAsync(this.query))
                     .then(async (result) => {
@@ -206,9 +203,17 @@ class SQLiteManager {
         });
     }
     get = (id) => {
+        // if(this.lastMethod==="pagination"){
+        //   // handle code
+        // }
+        this.lastMethod = "get";
         return this.filter({ id }).first(false);
     };
     filter = (params) => {
+        // if(this.lastMethod==="pagination"){
+        //   // handle code
+        // }
+        this.lastMethod = "filter";
         let whereText = params ? this.model.getFilterQuery(params) : '';
         if (this.query) {
             if (this.query.includes('WHERE')) {
@@ -228,11 +233,7 @@ class SQLiteManager {
             search: this.search.bind(this),
             pagination: this.pagination.bind(this),
             run: () => this.getFinalListResult(() => db.getAllAsync(this.query)),
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
             first: this.first.bind(this),
             last: this.last.bind(this),
             delete: this.delete.bind(this),
@@ -241,40 +242,48 @@ class SQLiteManager {
     };
     first(nullable = true) {
         if (this.query) {
-            this.setQuery(`${this.query} ORDER BY id ASC LIMIT 1`);
+            if (this.lastMethod === "pagination") {
+                const OFFSET = this.query.split('OFFSET')[1];
+                this.setQuery(`${this.query.split('LIMIT')[0]} ORDER BY id ASC LIMIT 1 OFFSET ${OFFSET}`);
+            }
+            else {
+                this.setQuery(`${this.query} ORDER BY id ASC LIMIT 1`);
+            }
         }
         else {
             this.setQuery(`${this.queries().ALL} ORDER BY id ASC LIMIT 1`);
         }
+        this.lastMethod = "first";
         return ({
             run: () => this.getFinalSingleResult(() => db.getAllAsync(this.query), nullable),
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
         });
     }
     last(nullable = true) {
+        if (this.lastMethod === "pagination") {
+            // handle code
+        }
         if (this.query) {
-            this.setQuery(`${this.query} ORDER BY id DESC LIMIT 1`);
+            if (this.lastMethod === "pagination") {
+                const OFFSET = this.query.split('OFFSET')[1];
+                this.setQuery(`${this.query.split('LIMIT')[0]} ORDER BY id DESC LIMIT 1 OFFSET ${OFFSET}`);
+            }
+            else {
+                this.setQuery(`${this.query} ORDER BY id DESC LIMIT 1`);
+            }
         }
         else {
             this.setQuery(`${this.queries().ALL} ORDER BY id DESC LIMIT 1`);
         }
+        this.lastMethod = "last";
         return ({
             run: () => this.getFinalSingleResult(() => db.getAllAsync(this.query), nullable),
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
         });
     }
     delete() {
         if (this.query) {
-            this.setQuery(this.query.replace('ORDER BY id DESC LIMIT 1', '')
-                .replace('ORDER BY id ASC LIMIT 1', '')
+            this.setQuery(this.query
                 .replace(this.queries().ALL, this.queries().DELETE));
         }
         else {
@@ -286,11 +295,7 @@ class SQLiteManager {
                 this.clearQuery();
                 return db.runAsync(oldQuery);
             },
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
         });
     }
     update(data) {
@@ -305,9 +310,7 @@ class SQLiteManager {
         })
             .join(', ');
         if (this.query) {
-            this.setQuery(`${this.queries().UPDATE} ${fieldsToUpdate} ${this.query.replace(this.queries().ALL, '')}`
-                .replace('ORDER BY id DESC LIMIT 1', '')
-                .replace('ORDER BY id ASC LIMIT 1', ''));
+            this.setQuery(`${this.queries().UPDATE} ${fieldsToUpdate} ${this.query.replace(this.queries().ALL, '')}`);
         }
         else {
             this.setQuery(`${this.queries().UPDATE} ${fieldsToUpdate}`);
@@ -319,11 +322,7 @@ class SQLiteManager {
                 this.clearQuery();
                 return db.runAsync(oldQuery);
             }),
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
         });
     }
     create(data) {
@@ -342,14 +341,17 @@ class SQLiteManager {
                 this.clearQuery();
                 return this.get(el.lastInsertRowId).run();
             })),
-            query: () => {
-                const oldQuery = this.query;
-                this.clearQuery();
-                return oldQuery;
-            },
+            query: this.getLastQuery,
         });
     }
+    getLastQuery = () => {
+        this.lastMethod = "";
+        const oldQuery = this.query;
+        this.clearQuery();
+        return oldQuery;
+    };
     async getFinalListResult(func) {
+        this.lastMethod = "";
         return new Promise(async (resolve, reject) => {
             await func()
                 .then(result => {
@@ -361,7 +363,7 @@ class SQLiteManager {
                         delete: () => this.get(item.id).run().then(() => this.filter({ id: item.id }).delete().run()),
                         update: (data) => this.get(item.id).run()
                             .then(() => this.filter({ id: item.id }).update(data).run()
-                            .then(el => this.get(item.id).run())),
+                            .then(() => this.get(item.id).run())),
                         children: (table) => {
                             const obj = this.model.getChildren()[table];
                             return obj.table.objects.filter({ [obj.fieldName]: item.id });
@@ -380,6 +382,7 @@ class SQLiteManager {
         });
     }
     async getFinalSingleResult(func, nullable) {
+        this.lastMethod = "";
         return new Promise(async (resolve, reject) => {
             await func()
                 .then(result => {
@@ -391,7 +394,7 @@ class SQLiteManager {
                         delete: () => this.get(item.id).run().then(() => this.filter({ id: item.id }).delete().run()),
                         update: (data) => this.get(item.id).run()
                             .then(() => this.filter({ id: item.id }).update(data).run()
-                            .then(el => this.get(item.id).run())),
+                            .then(() => this.get(item.id).run())),
                         children: (table) => {
                             const obj = this.model.getChildren()[table];
                             return obj.table.objects.filter({ [obj.fieldName]: item.id });

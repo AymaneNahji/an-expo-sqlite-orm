@@ -10,6 +10,7 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
     private setQuery;
     private queries;
     private query;
+    private lastMethod;
     all(): {
         query: () => string;
         filter: typeof this.filter;
@@ -26,8 +27,6 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
         query: () => string;
         first: typeof this.first;
         last: typeof this.last;
-        delete: typeof this.delete;
-        update: typeof this.update;
         run: () => Promise<{
             next: number | null;
             nextPagination: () => ReturnType<SQLiteManager<S>["pagination"]> | null;
@@ -61,6 +60,7 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
         run: () => Promise<any>;
         query: () => string;
     };
+    private getLastQuery;
     private getFinalListResult;
     private getFinalSingleResult;
 }

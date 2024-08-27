@@ -84,6 +84,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
     this.pagination.bind(this);
     this.first.bind(this);
     this.last.bind(this);
+    this.getLastQuery.bind(this);
 
     this.queries.bind(this);
   }
@@ -106,16 +107,14 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
 
 
   private query = ''
+  private lastMethod = '' as keyof SQLiteManager<S> | ''
 
 
   public all(){
+    this.lastMethod="all"
     if(!this.query) this.setQuery(this.queries().ALL)
     return ({
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
 
       filter:this.filter.bind(this) as typeof this.filter,
       search:this.search.bind(this) as typeof this.search,
@@ -130,6 +129,10 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
   }
 
   public search = (searchText='') : SearchReturnType<S>=>{
+    if(this.lastMethod==="pagination"){
+      // handle code
+    }
+    this.lastMethod="search"
     let searchSqlText = ''
     if(this.query) {
       if(this.query.includes('WHERE')){
@@ -154,11 +157,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
       this.setQuery(`${this.queries().ALL} ${searchSqlText}`)
     
     return ({
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
 
       filter:this.filter.bind(this) as typeof this.filter,
       search:this.search.bind(this) as typeof this.search,
@@ -183,6 +182,11 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
       throw new Error('pageSize must be greater than 0')
     }
 
+    // if(this.lastMethod==="pagination"){
+    //   // handle code
+    // }
+    this.lastMethod="pagination"
+
     let nextPageQuery = this.query
     
     if(this.query){
@@ -202,16 +206,10 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
 
       
     return ({
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
 
       first:this.first.bind(this) as typeof this.first,
       last:this.last.bind(this) as typeof this.last,
-      delete:this.delete.bind(this) as typeof this.delete,
-      update:this.update.bind(this) as typeof this.update,
 
       run:()=>new Promise<{
         next: number | null,
@@ -264,12 +262,19 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
   }
 
   public get = (id:number)=>{
+    // if(this.lastMethod==="pagination"){
+    //   // handle code
+    // }
+    this.lastMethod="get"
     return this.filter({id} as any).first(false)
   }
 
 
   public filter = (params?: FilterParams<InstanceWithId<S['fields']>>) : FilterReturnType<S>=>{
-    
+    // if(this.lastMethod==="pagination"){
+    //   // handle code
+    // }
+    this.lastMethod="filter"
 
     let whereText = params ? this.model.getFilterQuery(params) : ''
 
@@ -291,11 +296,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
       search:this.search.bind(this) as typeof this.search,
       pagination:this.pagination.bind(this) as typeof this.pagination,
       run:()=>this.getFinalListResult(()=>db!.getAllAsync(this.query)),
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
       first:this.first.bind(this) as typeof this.first,
       last:this.last.bind(this) as typeof this.last,
       delete:this.delete.bind(this) as typeof this.delete,
@@ -305,45 +306,55 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
 
 
   public first(nullable=true){
+    
+    
     if (this.query){
-      this.setQuery(`${this.query} ORDER BY id ASC LIMIT 1`);
+      if(this.lastMethod==="pagination"){
+        const OFFSET = this.query.split('OFFSET')[1]
+        this.setQuery(`${this.query.split('LIMIT')[0]} ORDER BY id ASC LIMIT 1 OFFSET ${OFFSET}`)
+      }else{
+        this.setQuery(`${this.query} ORDER BY id ASC LIMIT 1`);
+      }
     }else{
       this.setQuery(`${this.queries().ALL} ORDER BY id ASC LIMIT 1`);
     }
+
+    this.lastMethod="first"
     
     return ({
       run:()=>this.getFinalSingleResult(()=>db!.getAllAsync(this.query),nullable),
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
     })
   }
 
   public last(nullable=true){
 
+    if(this.lastMethod==="pagination"){
+      // handle code
+    }
+    
     if (this.query){
-      this.setQuery(`${this.query} ORDER BY id DESC LIMIT 1`);
+      if(this.lastMethod==="pagination"){
+        const OFFSET = this.query.split('OFFSET')[1]
+        this.setQuery(`${this.query.split('LIMIT')[0]} ORDER BY id DESC LIMIT 1 OFFSET ${OFFSET}`)
+      }else{
+        this.setQuery(`${this.query} ORDER BY id DESC LIMIT 1`);
+      }
     }else{
       this.setQuery(`${this.queries().ALL} ORDER BY id DESC LIMIT 1`);
     }
     
+    this.lastMethod="last"
     return ({
       run:()=>this.getFinalSingleResult(()=>db!.getAllAsync(this.query),nullable),
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
     })
   }
 
   public delete(){
     if (this.query){
       this.setQuery(
-        this.query.replace('ORDER BY id DESC LIMIT 1','')
-        .replace('ORDER BY id ASC LIMIT 1','')
+        this.query
         .replace(this.queries().ALL,this.queries().DELETE)
       )
     }else{
@@ -355,11 +366,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
         this.clearQuery()
         return db!.runAsync(oldQuery)
       },
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
     })
   }
 
@@ -378,8 +385,6 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
     if (this.query){
       this.setQuery(
         `${this.queries().UPDATE} ${fieldsToUpdate} ${this.query.replace(this.queries().ALL,'')}`
-        .replace('ORDER BY id DESC LIMIT 1','')
-        .replace('ORDER BY id ASC LIMIT 1','')
       )
     }else{
       this.setQuery(`${this.queries().UPDATE} ${fieldsToUpdate}`)
@@ -392,11 +397,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
           this.clearQuery()
           return db!.runAsync(oldQuery)
       }),
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
     })
   }
 
@@ -423,16 +424,20 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
           return this.get(el.lastInsertRowId).run()
         })
       ),
-      query:()=>{
-        const oldQuery = this.query
-        this.clearQuery()
-        return oldQuery
-      },
+      query:this.getLastQuery,
     })
+  }
+
+  private getLastQuery = ()=>{
+    this.lastMethod=""
+    const oldQuery = this.query
+    this.clearQuery()
+    return oldQuery
   }
   
 
   private async getFinalListResult(func:()=>Promise<unknown[]>){
+    this.lastMethod=""
     return new Promise<InstanceWithOps<S>[]>(async(resolve, reject)=>{
       await func()
       .then(result=>{
@@ -445,7 +450,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
             delete :()=>this.get(item.id).run().then(()=>this.filter({id:item.id} as any).delete().run()),
             update:(data:Partial<S['fields']>)=>this.get(item.id).run()
             .then(()=>this.filter({id:item.id} as any).update(data).run()
-            .then(el=>this.get(item.id).run())),
+            .then(()=>this.get(item.id).run())),
             children: (table)=> {
               const obj = this.model.getChildren()[table]
               return obj.table.objects.filter({[obj.fieldName]:item.id} as any)
@@ -466,6 +471,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
   }
 
   private async getFinalSingleResult(func:()=>Promise<unknown[]>,nullable:boolean){
+    this.lastMethod=""
     return new Promise<InstanceWithOps<S>| null>(async(resolve, reject)=>{
       await func()
       .then(result=>{
@@ -477,7 +483,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
             delete:()=>this.get(item.id).run().then(()=>this.filter({id:item.id} as any).delete().run()),
             update: (data:Partial<S['fields']>)=>this.get(item.id).run()
             .then(()=>this.filter({id:item.id} as any).update(data).run()
-            .then(el=>this.get(item.id).run())),
+            .then(()=>this.get(item.id).run())),
             children: (table)=> {
               const obj = this.model.getChildren()[table]
               return obj.table.objects.filter({[obj.fieldName]:item.id} as any)
