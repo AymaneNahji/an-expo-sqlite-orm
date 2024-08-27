@@ -52,6 +52,69 @@ export default (() => {
 })();
 ```
 
-### import init.ts file in start file
+### import init.ts file in start file (app.tsx)
 
-`import './init'`
+`import './db/init'`
+
+# How working
+### you can import **TodoModel** for example and:
+
+```
+const todo = new TodoModel()
+
+// todo.objects.[method].run() run is Promise return value depends on [method]
+```
+
+### create
+```
+todo.objects.create({
+  // todo object
+}).run().then((newCreateItem)=>{
+  console.log('item created' , newCreateItem)
+})
+```
+
+### update
+```
+todo.objects.filter({id:[id:number]}).update({
+  // todo object
+}).run().then((val:SQLite.SQLiteRunResult)=>{
+  console.log(val)
+})
+```
+
+### delete
+```
+todo.objects.filter({id:[id:number]}).delete().run().then((val:SQLite.SQLiteRunResult)=>{
+  console.log(val)
+})
+```
+
+### first or last
+```
+todo.objects.first().run().the(item=>{
+  console.log('first item', item)
+}).catch(()=>{
+  // item is not found
+})
+```
+
+### search
+```
+// in todo getSchema fields add useSearch:true in any field you want to search
+
+todo.objects.search('hello').run().the(items=>{
+  console.log('items', items)
+})
+```
+
+### pagination
+```
+todo.objects.pagination(1,20).run().the(items=>{
+  console.log('items of page 1 if pageSize is 20', items)
+})
+```
+
+### InstanceWithOps<Schema>
+
+this type is so important if you use any method return that you can **update** or **delete** the single instance or get **parent** or **children** too
