@@ -21,6 +21,7 @@ export interface TodoSchema {
 
 
 export class TodoModel extends SQLiteModel<TodoSchema> {
+    tableName = "todo"
     getSchema(): SQLiteModelSchema<{ fields: TodoFields; children: {}; parents: {}; }> {
         return {
             fields:{
@@ -101,7 +102,7 @@ todo.objects.first().run().the(item=>{
 
 ### search
 ```
-// in todo getSchema fields add useSearch:true in any field you want to search
+// in todo getSchema fields add useInSearch:true in any field you want to search
 
 todo.objects.search('hello').run().the(items=>{
   console.log('items', items)

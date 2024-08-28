@@ -43,25 +43,13 @@ export const initDatabase = async (models: SQLiteModel<any>[],dbName='an_expo_sq
 };
 
 export const resetDatabase = async (models: SQLiteModel<any>[],dbName='an_expo_sqlite_orm.db') => {
-  deleteDataBase()
-    .then(async () => {
-      db = SQLite.openDatabaseSync(dbName);
-
-      console.log(
-        '-----------------------init database-----------------------',
-      );
-      try {
-        await Promise.all(models.map((model) => model.initTable()));
-        console.log('All tables created successfully');
-      } catch (error) {
-        console.error('Error initializing database:', error);
-        throw error;
-      }
-    })
-    .catch((error) => {
-      console.error('Error resetting database:', error);
-      throw error;
-    });
+  try {
+    await deleteDataBase(dbName)
+  } catch (error) {
+    console.log('Error deleting database:', error);
+    
+  }
+  await initDatabase(models, dbName)
 };
 
 
@@ -111,7 +99,7 @@ class SQLiteManager<S extends SQLiteModelSchemaType>{
   private lastMethod = '' as keyof SQLiteManager<S> | ''
 
 
-  public all(){
+  public all() : FilterReturnType<S> {
     this.lastMethod="all"
     if(!this.query) this.setQuery(this.queries().ALL)
     return ({
@@ -514,6 +502,7 @@ export class SQLiteModel<S extends SQLiteModelSchemaType> {
   tableName!: string;
 
   constructor(){
+    
     this.initTable.bind(this);
     this.getSchema.bind(this);
     this.getFields.bind(this);
@@ -527,6 +516,7 @@ export class SQLiteModel<S extends SQLiteModelSchemaType> {
 
   initTable(): Promise<SQLite.SQLiteRunResult> {
     if(!db) throw new Error("Cannot initialize this table without a database");
+    if(!this.tableName) throw new Error("Cannot initialize this table without a table name");
     const foriegnKeysQueries: string[] = [];
     const fieldsQueries: string[] = Object.keys(this.getFields())
     .map(

@@ -31,23 +31,13 @@ export const initDatabase = async (models, dbName = 'an_expo_sqlite_orm.db') => 
     }
 };
 export const resetDatabase = async (models, dbName = 'an_expo_sqlite_orm.db') => {
-    deleteDataBase()
-        .then(async () => {
-        db = SQLite.openDatabaseSync(dbName);
-        console.log('-----------------------init database-----------------------');
-        try {
-            await Promise.all(models.map((model) => model.initTable()));
-            console.log('All tables created successfully');
-        }
-        catch (error) {
-            console.error('Error initializing database:', error);
-            throw error;
-        }
-    })
-        .catch((error) => {
-        console.error('Error resetting database:', error);
-        throw error;
-    });
+    try {
+        await deleteDataBase(dbName);
+    }
+    catch (error) {
+        console.log('Error deleting database:', error);
+    }
+    await initDatabase(models, dbName);
 };
 class SQLiteManager {
     model;
@@ -436,6 +426,8 @@ export class SQLiteModel {
     initTable() {
         if (!db)
             throw new Error("Cannot initialize this table without a database");
+        if (!this.tableName)
+            throw new Error("Cannot initialize this table without a table name");
         const foriegnKeysQueries = [];
         const fieldsQueries = Object.keys(this.getFields())
             .map((fieldName) => {

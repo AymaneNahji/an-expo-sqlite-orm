@@ -11,17 +11,7 @@ declare class SQLiteManager<S extends SQLiteModelSchemaType> {
     private queries;
     private query;
     private lastMethod;
-    all(): {
-        query: () => string;
-        filter: typeof this.filter;
-        search: typeof this.search;
-        pagination: typeof this.pagination;
-        first: typeof this.first;
-        last: typeof this.last;
-        delete: typeof this.delete;
-        update: typeof this.update;
-        run: () => Promise<InstanceWithOps<S>[]>;
-    };
+    all(): FilterReturnType<S>;
     search: (searchText?: string) => SearchReturnType<S>;
     pagination(page: number, pageSize: number): {
         query: () => string;
