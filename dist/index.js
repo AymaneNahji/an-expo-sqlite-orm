@@ -11,7 +11,7 @@ import * as SQLite from 'expo-sqlite';
 let db = null;
 export const deleteDataBase = (dbName = 'an_expo_sqlite_orm.db') => {
     console.log('xxxxxxxxxxxxxxxxxx delete database xxxxxxxxxxxxxxxxxxxxxxxxx');
-    return FileSystem.deleteAsync(`${FileSystem.documentDirectory}/SQLite/${dbName}`);
+    return SQLite.deleteDatabaseAsync(dbName);
 };
 export const dbIsExistant = async (dbName = 'an_expo_sqlite_orm.db') => {
     await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}/SQLite/${dbName}`).then((exists) => {

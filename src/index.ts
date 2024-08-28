@@ -16,9 +16,7 @@ let db : SQLite.SQLiteDatabase | null = null;
 
 export const deleteDataBase = (dbName='an_expo_sqlite_orm.db') => {
   console.log('xxxxxxxxxxxxxxxxxx delete database xxxxxxxxxxxxxxxxxxxxxxxxx');
-  return FileSystem.deleteAsync(
-    `${FileSystem.documentDirectory}/SQLite/${dbName}`,
-  );
+  return SQLite.deleteDatabaseAsync(dbName)
 };
 
 export const dbIsExistant = async (dbName='an_expo_sqlite_orm.db') => {
@@ -43,6 +41,7 @@ export const initDatabase = async (models: SQLiteModel<any>[],dbName='an_expo_sq
 };
 
 export const resetDatabase = async (models: SQLiteModel<any>[],dbName='an_expo_sqlite_orm.db') => {
+  
   try {
     await deleteDataBase(dbName)
   } catch (error) {
