@@ -1,0 +1,28 @@
+{
+  "name": "an-expo-sqlite-orm",
+  "version": "1.0.15",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "keywords": ["expo","expo-sqlite","react","react-native","orm","sqlite","sqlite-orm","sql","an","an-expo-sqlite-orm"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "expo": "^51.0.31",
+    "expo-file-system": "^17.0.1",
+    "expo-sqlite": "^14.0.6",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.4",
+    "@types/react-native": "^0.73.0"
+  }
+}
